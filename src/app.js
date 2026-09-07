@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth.routes');
 const equiposRoutes = require('./routes/equipos.routes');
+const ventasRoutes = require('./routes/ventas.routes');
 const manejadorErrores = require('./middleware/error.middleware');
 
 const app = express();
@@ -19,6 +20,7 @@ app.get('/api/info', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/equipos', equiposRoutes);
+app.use('/api/ventas', ventasRoutes);
 
 app.use((req, res) => {
     res.status(404).json({ error: 'Ruta no encontrada' });
