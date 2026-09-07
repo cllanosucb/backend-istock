@@ -160,4 +160,47 @@ async function remove(req, res, next) {
     }
 }
 
-module.exports = { getAll, getById, create, update, remove };
+async function getResumen(req, res, next) {
+    try {
+        const totalEnStockResult = await pool.query(
+            `SELECT COUNT(*)::int AS total FROM equipos WHERE estado IN ('disponible', 'en_reparacion')`
+        );
+
+        const ventasDelMesResult = await pool.query(
+            `SELECT COUNT(*)::int AS cantidad, COALESCE(SUM(precio_final), 0) AS monto
+            FROM ventas
+            WHERE date_trunc('month', fecha_venta) = date_trunc('month', CURRENT_DATE)`
+        );
+
+        const modeloMasVendidoResult = await pool.query(
+            `SELECT e.modelo, COUNT(*) AS cantidad
+            FROM ventas v
+            JOIN equipos e ON e.id = v.equipo_id
+            GROUP BY e.modelo
+            ORDER BY cantidad DESC
+            LIMIT 1`
+        );
+
+        const ultimasTransaccionesResult = await pool.query(
+            `SELECT e.modelo, e.capacidad, v.fecha_venta, v.precio_final
+            FROM ventas v
+            JOIN equipos e ON e.id = v.equipo_id
+            ORDER BY v.fecha_venta DESC, v.id DESC
+            LIMIT 5`
+        );
+
+        res.json({
+            totalEnStock: totalEnStockResult.rows[0].total,
+            ventasDelMes: {
+                cantidad: ventasDelMesResult.rows[0].cantidad,
+                monto: Number(ventasDelMesResult.rows[0].monto),
+            },
+            modeloMasVendido: modeloMasVendidoResult.rows[0]?.modelo ?? null,
+            ultimasTransacciones: ultimasTransaccionesResult.rows,
+        });
+    } catch (err) {
+        next(err);
+    }
+}
+
+module.exports = { getAll, getById, create, update, remove, getResumen };
